@@ -48,6 +48,14 @@ class SerializerTest < ActiveModel::TestCase
     def active_model_serializer; CommentSerializer; end
   end
 
+  class Match
+    include ActiveModel::SerializerSupport
+
+    def player1 ; 'testPlayer1' ; end
+    def player2 ; 'testPlayer2' ; end
+    def winner  ; 'testPlayer1' ; end 
+  end
+
   class UserSerializer < ActiveModel::Serializer
     attributes :first_name, :last_name
 
@@ -92,6 +100,18 @@ class SerializerTest < ActiveModel::TestCase
   class PostSerializer < ActiveModel::Serializer
     attributes :title, :body
     has_many :comments, :serializer => CommentSerializer
+  end
+
+  class MatchSerializer < ActiveModel::Serializer
+    attributes :player1, :player2, :winner
+
+    def winner
+      if @options[:view_results]
+        match.winner
+      else
+        nil
+      end
+    end
   end
 
   def test_attributes
@@ -812,6 +832,21 @@ class SerializerTest < ActiveModel::TestCase
         { :name => "violetcat", :id => 3 },
         { :name => "nyancat", :id => 2 }
       ]
+    }, actual)
+  end
+
+  def test_attribute_calls_serializer_method_if_existing
+    match = Match.new
+    actual = MatchSerializer.new(match, view_results: false).as_json
+    
+    assert_equal({
+      match: { player1: 'testPlayer1', player2: 'testPlayer2', winner: nil }
+    }, actual)
+
+    actual = MatchSerializer.new(match, view_results: true).as_json
+    
+    assert_equal({
+      match: { player1: 'testPlayer1', player2: 'testPlayer2', winner: 'testPlayer1' }
     }, actual)
   end
 end
