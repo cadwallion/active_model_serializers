@@ -404,6 +404,7 @@ module ActiveModel
         @options[:unique_values] = {}
 
         hash.merge!(root => serializable_hash)
+        hash
       else
         serializable_hash
       end
