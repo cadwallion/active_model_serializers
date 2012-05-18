@@ -54,6 +54,12 @@ module ActiveModel
 
       array = serializable_array.map(&:serializable_hash)
 
+      if Object.const_defined? :ActiveRecord
+        if !ActiveRecord::Base.include_root_in_json
+          return array
+        end
+      end
+
       if root = @options[:root]
         hash.merge!(root => array)
       else
@@ -366,7 +372,7 @@ module ActiveModel
       def inherited(klass) #:nodoc:
         return if klass.anonymous?
         name = klass.name.demodulize.underscore.sub(/_serializer$/, '')
-
+        
         klass.class_eval do
           alias_method name.to_sym, :object
           root name.to_sym unless self._root == false
@@ -388,12 +394,16 @@ module ActiveModel
     # object including the root.
     def as_json(options=nil)
       options ||= {}
+
+      if Object.const_defined?(:ActiveRecord) && _root.nil?
+        _root = false if !ActiveRecord::Base.include_root_in_json
+      end
+
       if root = options.fetch(:root, @options.fetch(:root, _root))
         @options[:hash] = hash = {}
         @options[:unique_values] = {}
 
         hash.merge!(root => serializable_hash)
-        hash
       else
         serializable_hash
       end
