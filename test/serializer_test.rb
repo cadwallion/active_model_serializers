@@ -48,14 +48,6 @@ class SerializerTest < ActiveModel::TestCase
     def active_model_serializer; CommentSerializer; end
   end
 
-  class Match
-    include ActiveModel::SerializerSupport
-
-    def player1 ; 'testPlayer1' ; end
-    def player2 ; 'testPlayer2' ; end
-    def winner  ; 'testPlayer1' ; end 
-  end
-
   class UserSerializer < ActiveModel::Serializer
     attributes :first_name, :last_name
 
@@ -150,6 +142,12 @@ class SerializerTest < ActiveModel::TestCase
         :scope => true
       }
     }, hash)
+  end
+
+  def test_serializer_receives_url_options
+    user = User.new
+    user_serializer = UserSerializer.new(user, :url_options => { :host => "test.local" })
+    assert_equal({ :host => "test.local" }, user_serializer.url_options)
   end
 
   def test_pretty_accessors
@@ -835,18 +833,65 @@ class SerializerTest < ActiveModel::TestCase
     }, actual)
   end
 
-  def test_attribute_calls_serializer_method_if_existing
-    match = Match.new
-    actual = MatchSerializer.new(match, view_results: false).as_json
-    
-    assert_equal({
-      match: { player1: 'testPlayer1', player2: 'testPlayer2', winner: nil }
-    }, actual)
+  def test_can_customize_attributes
+    serializer = Class.new(ActiveModel::Serializer) do
+      attributes :title, :body
 
-    actual = MatchSerializer.new(match, view_results: true).as_json
-    
+      def title
+        object.title.upcase
+      end
+    end
+
+    klass = Class.new do
+      def read_attribute_for_serialization(name)
+        { :title => "New post!", :body => "First post body" }[name]
+      end
+
+      def title
+        read_attribute_for_serialization(:title)
+      end
+
+      def body
+        read_attribute_for_serialization(:body)
+      end
+    end
+
+    object = klass.new
+
+    actual = serializer.new(object, :root => :post).as_json
+
     assert_equal({
-      match: { player1: 'testPlayer1', player2: 'testPlayer2', winner: 'testPlayer1' }
+      :post => {
+        :title => "NEW POST!",
+        :body => "First post body"
+      }
     }, actual)
+  end
+
+  def test_can_customize_attributes_with_read_attributes
+    serializer = Class.new(ActiveModel::Serializer) do
+      attributes :title, :body
+
+      def read_attribute_for_serialization(name)
+        { :title => "New post!", :body => "First post body" }[name]
+      end
+    end
+
+    actual = serializer.new(Object.new, :root => :post).as_json
+
+    assert_equal({
+      :post => {
+        :title => "New post!",
+        :body => "First post body"
+      }
+    }, actual)
+  end
+
+  def test_active_support_on_load_hooks_fired
+    loaded = nil
+    ActiveSupport.on_load(:active_model_serializers) do
+      loaded = self
+    end
+    assert_equal ActiveModel::Serializer, loaded
   end
 end

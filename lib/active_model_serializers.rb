@@ -10,6 +10,12 @@ if defined?(Rails)
         Rails::Generators.configure!(app.config.generators)
         require "generators/resource_override"
       end
+
+      initializer "include_routes.active_model_serializer" do |app|
+        ActiveSupport.on_load(:active_model_serializers) do
+          include app.routes.url_helpers
+        end
+      end
     end
   end
 end
@@ -57,3 +63,5 @@ begin
 rescue LoadError => ex
   # rails on installed, continuing
 end
+
+ActiveSupport.run_load_hooks(:active_model_serializers, ActiveModel::Serializer)
