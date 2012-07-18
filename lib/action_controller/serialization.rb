@@ -33,7 +33,7 @@ module ActionController
     end
 
     def serialization_scope
-      send(_serialization_scope) if respond_to?(_serialization_scope)
+      send(_serialization_scope) if _serialization_scope && respond_to?(_serialization_scope)
     end
 
     def default_serializer_options
@@ -41,7 +41,7 @@ module ActionController
 
     def _render_option_json(json, options)
       if json.respond_to?(:to_ary)
-        options[:root] ||= controller_name
+        options[:root] ||= controller_name unless options[:root] == false
       end
 
       serializer = options.delete(:serializer) ||
