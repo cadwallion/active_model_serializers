@@ -66,7 +66,7 @@ module ActiveModel
         end
       end
 
-      if Object.const_defined? :ActiveRecord
+      if defined?(ActiveRecord::Base)
         if !ActiveRecord::Base.include_root_in_json
           return array
         end
@@ -405,7 +405,7 @@ module ActiveModel
       def inherited(klass) #:nodoc:
         return if klass.anonymous?
         name = klass.name.demodulize.underscore.sub(/_serializer$/, '')
-        
+
         klass.class_eval do
           alias_method name.to_sym, :object
           root name.to_sym unless self._root == false
@@ -428,8 +428,8 @@ module ActiveModel
     def as_json(options=nil)
       options ||= {}
 
-      if Object.const_defined?(:ActiveRecord) && _root.nil?
-        _root = false if !ActiveRecord::Base.include_root_in_json
+      if defined?(ActiveRecord::Base) && _root.nil?
+        self._root = false if !ActiveRecord::Base.include_root_in_json
       end
 
       if root = options.fetch(:root, @options.fetch(:root, _root))
@@ -554,7 +554,7 @@ module ActiveModel
     end
 
     # Returns options[:scope]
-    def scope 
+    def scope
       @options[:scope]
     end
 
